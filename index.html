@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Rhythm Dodge Game</title>
+  <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<style>
+    body {
+  margin: 0;
+  padding: 0;
+  background-color: black;
+}
+
+canvas {
+  display: block;
+}
+
+</style>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <script src="game.js"></script>
+</body>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const context = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let score = 0;
+let isDodging = false;
+let isShooting = false;
+let obstacles = [];
+let boss = {
+  x: canvas.width / 2 - 100,
+  y: -100,
+  width: 200,
+  height: 200,
+};
+let player = {
+  x: canvas.width / 2 - 25,
+  y: canvas.height - 75,
+  width: 50,
+  height: 50,
+  speed: 30
+};
+let obstacle = {
+  color: 'red',
+}
+let redLineY = canvas.height - 50;
+
+document.addEventListener("keydown", handleKeyDown);
+document.addEventListener("keyup", handleKeyUp);
+
+function handleKeyDown(event) {
+
+  if (event.keyCode === 32) {
+    isShooting = true;
+    destroyObstaclesInLaserRange();
+  }
+}
+
+function handleKeyUp(event) {
+
+  if (event.keyCode === 32) {
+    isShooting = false;
+  }
+}
+
+function update() {
+  draw();
+  requestAnimationFrame(update);
+}
+
+
+function draw() {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = obstacle.color;
+  context.fillRect(0, redLineY, canvas.width, 5);
+  obstacles.forEach((obstacle, index) => {
+    obstacle.y += obstacle.speed;
+    context.fillStyle = obstacle.color;
+    context.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+
+    if (obstacle.y + obstacle.height >= redLineY) {
+      obstacles.splice(index, 1);
+    }
+  });
+  context.fillStyle = "white";
+  context.fillRect(boss.x, boss.y, boss.width, boss.height);
+  context.fillStyle = "green";
+  context.fillRect(player.x, player.y, player.width, player.height);
+  if (isShooting) {
+    context.fillStyle = "yellow";
+    context.fillRect(player.x + player.width / 2, player.y - 20, player.width / 2, 20);
+  }
+}
+
+function generateObstacles() {
+  const obstacle = {
+    x: Math.random() * (canvas.width - 50),
+    y: -50,
+    width: 50,
+    height: 50,
+    speed: 5
+  };
+
+  obstacles.push(obstacle);
+}
+
+function destroyObstaclesInLaserRange() {
+  obstacles.forEach((obstacle, index) => {
+    const laserRange = {
+      x: player.x + player.width / 2 - 50,
+      y: player.y - 200,
+      width: 250,
+      height: 200
+    };
+
+    if (
+      obstacle.x >= laserRange.x &&
+      obstacle.x + obstacle.width <= laserRange.x + laserRange.width &&
+      obstacle.y >= laserRange.y &&
+      obstacle.y + obstacle.height <= laserRange.y + laserRange.height
+    ) {
+        obstacles.splice(index, 1);
+    }
+  });
+
+}
+
+
+function gameOver() {
+  console.log("Game Over");
+}
+
+function movePlayer(direction) {
+  if (direction === "left" && player.x > 0) {
+    player.x -= player.speed;
+  }
+
+  if (direction === "right" && player.x + player.width < canvas.width) {
+    player.x += player.speed;
+  }
+}
+
+function startGame() {
+  setInterval(generateObstacles, 2000);
+  update();
+}
+
+document.addEventListener("keydown", event => {
+  if (event.keyCode === 37) {
+    movePlayer("left");
+  }
+
+  if (event.keyCode === 39) {
+    movePlayer("right");
+  }
+});
+
+startGame();
+
+</script>
+</html>
