@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Rhythm Dodge Game</title>
+  <title>Motsu Prototype</title>
   <style>
     body {
       margin: 0;
@@ -50,6 +50,41 @@ let score = 0;
 let health = 100;
 let redSquareX;
 let redDead = false;
+const fillBarWidth = 20;
+const fillBarHeight = 200;
+const fillBarX = canvas.width + 150;
+const fillBarY = canvas.height - fillBarHeight + 250;
+const maxFillValue = 100;
+let fillValue = 100;
+const fillIncrement = 10; // Adjust the value as per your preference
+let currentFillValue = 0; // Starting fill value
+let targetFillValue = 0; // Target fill value
+
+function drawFillBar() {
+  // Update the current fill value towards the target fill value
+  if (isBlockHit || redDead) {
+    targetFillValue += fillIncrement;
+    targetFillValue = Math.min(targetFillValue, maxFillValue); // Limit the target fill value to the maximum value
+    isBlockHit = false;
+    redDead = false;
+  }
+
+  // Ease the current fill value towards the target fill value
+  currentFillValue += (targetFillValue - currentFillValue) * 0.1; // Adjust the easing factor as per your preference
+
+  // Calculate the fill percentage
+  const fillPercentage = (currentFillValue / maxFillValue) * fillBarHeight;
+
+  // Draw the outline of the fill bar
+  ctx.strokeStyle = 'white';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(fillBarX, fillBarY, fillBarWidth, fillBarHeight);
+
+  // Draw the filled part of the fill bar
+  ctx.fillStyle = 'green';
+  ctx.fillRect(fillBarX, fillBarY + fillBarHeight - fillPercentage, fillBarWidth, fillPercentage);
+}
+
 
 function initializeGame() {
   updateCanvasSize();
@@ -162,6 +197,7 @@ function gameLoop() {
     ctx.restore();
   }
 
+  drawFillBar();
   requestAnimationFrame(gameLoop);
 }
 window.addEventListener('resize', function() {
@@ -182,7 +218,6 @@ document.addEventListener('keydown', function(event) {
     isLaserActive = true;
     laserY = greenSquareY - laserHeight;
   } else if (event.code === 'KeyX' && !isKatanaActive) {
-    // Activate the laser katana
     isKatanaActive = true;
     katanaAngle = 0;
   }
