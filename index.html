@@ -69,6 +69,7 @@ const orangeSquareColor = 'orange';
 let greenSquare = {
   color: "green",
 }
+let combo = 0;
 
 function gameOverScreen(){
   ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
@@ -96,9 +97,9 @@ function drawFillBar() {
   const fillPercentage = (currentFillValue / maxFillValue) * fillBarHeight;
   ctx.strokeStyle = 'white';
   ctx.lineWidth = 2;
-  ctx.strokeRect(fillBarX, fillBarY, fillBarWidth, fillBarHeight);
+  ctx.strokeRect(fillBarX - 15, fillBarY, fillBarWidth, fillBarHeight);
   ctx.fillStyle = 'green';
-  ctx.fillRect(fillBarX, fillBarY + fillBarHeight - fillPercentage, fillBarWidth, fillPercentage);
+  ctx.fillRect(fillBarX - 15, fillBarY + fillBarHeight - fillPercentage, fillBarWidth, fillPercentage);
 }
 
 function initializeGame() {
@@ -134,6 +135,7 @@ document.addEventListener('keydown', function(event) {
     redSquareY = -redSquareSize;
     targetFillValue = 0;
     currentFillValue = 0;
+    combo = 0
 
     initializeGame();
     gameLoop();
@@ -172,6 +174,12 @@ function gameLoop() {
   ctx.font = 'bold 24px Arial';
   ctx.fillText('Score: ' + score, (canvas.width / 2) - 60, 30);
   ctx.fillStyle = 'white';
+  ctx.font = 'bold 24px Arial';
+  ctx.fillText('COMBO', (canvas.width / 2) - 280, 50);
+  ctx.fillStyle = 'white';
+  ctx.font = 'bolder 100px Arial';
+  ctx.fillText(combo, (canvas.width / 2) - 270, 150);
+  ctx.fillStyle = 'white';
   ctx.font = 'bold 12px Arial';
   ctx.fillText('Health: ' + health, canvas.width - 715, 640);
   if (currentFillValue >= maxFillValue - 10 && !isMultiplierActive) {
@@ -180,7 +188,7 @@ function gameLoop() {
     ctx.rotate(-Math.PI / 2);
     ctx.fillStyle = 'white';
     ctx.font = 'bolder 24px Arial';
-    ctx.fillText('Multiplier Active!', -225, 120);
+    ctx.fillText('Multiplier Active!', -235, 120);
     ctx.restore();
   }
 
@@ -188,6 +196,7 @@ function gameLoop() {
 
   if (redSquareY + redSquareSize >= greenSquareY + 55) {
     health -= 1;
+    combo = 0;
     redSquareX = Math.random() * (rectangleWidth - redSquareSize) + ((canvas.width - rectangleWidth) / 2);
     redSquareY = -redSquareSize;
   }
@@ -203,35 +212,54 @@ function gameLoop() {
     ) {
       isBlockHit = true;
       redDead = true;
-      score += 50;
+      combo +=1;
       redSquareY = -redSquareSize;
+      if (combo > 1){
+      score += 50*combo;
+      }else{
+        score += 50;
+      }
+    } else if (laserY < 0 && !isBlockHit && !redDead){
+      combo = 0;
     }
 
     if (laserY < 0 || isBlockHit) {
       isLaserActive = false;
       isBlockHit = false;
     }
-    ctx.fillStyle = 'violet';
+    ctx.fillStyle = 'black';
     ctx.fillRect(laserX, laserY, 5, laserHeight);
   }
+
   if (isKatanaActive) {
-    katanaAngle += katanaSwingSpeed;
-    if (
-      katanaAngle >= Math.PI / 2 &&
-      katanaAngle <= Math.PI &&
-      greenSquareX >= (canvas.width - rectangleWidth) / 2 &&
-      greenSquareX + greenSquareSize <= (canvas.width + rectangleWidth) / 2 &&
-      redSquareY + redSquareSize >= greenSquareY - 80
-    ) {
-      isBlockHit = true;
-      redDead = true;
+  katanaAngle += katanaSwingSpeed;
+
+  if (
+    katanaAngle >= Math.PI / 2 &&
+    katanaAngle <= Math.PI &&
+    greenSquareX >= (canvas.width - rectangleWidth) / 2 &&
+    greenSquareX + greenSquareSize <= (canvas.width + rectangleWidth) / 2 &&
+    redSquareY + redSquareSize >= greenSquareY - 80
+  ) {
+    isBlockHit = true;
+    redDead = true;
+    combo += 1;
+    redSquareY = -redSquareSize;
+    if (combo > 1){
+      score += 50*combo;
+    }else{
       score += 50;
-      redSquareY = -redSquareSize;
     }
-    if (katanaAngle >= Math.PI / 1.5) {
-      isKatanaActive = false;
-      isBlockHit = false;
+  }
+
+  if (katanaAngle >= Math.PI / 2) {
+    isKatanaActive = false;
+    isBlockHit = false;
+    if (!isBlockHit && !redDead) {
+      combo = 0;
     }
+  }
+
     ctx.save();
     ctx.translate(greenSquareX + greenSquareSize / 2, (greenSquareY + greenSquareSize) -25);
     ctx.rotate(katanaAngle - 1.5);
