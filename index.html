@@ -2,165 +2,194 @@
 <html>
 <head>
   <title>Rhythm Dodge Game</title>
-  <link rel="stylesheet" type="text/css" href="styles.css">
-</head>
-<style>
+  <style>
     body {
-  margin: 0;
-  padding: 0;
-  background-color: black;
-}
+      margin: 0;
+      padding: 0;
+      background-color: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
 
-canvas {
-  display: block;
-}
-
-</style>
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
 <body>
   <canvas id="gameCanvas"></canvas>
   <script src="game.js"></script>
-</body>
 
-<script>
-const canvas = document.getElementById("gameCanvas");
-const context = canvas.getContext("2d");
-
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
+  <script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+function updateCanvasSize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+let greenSquareY; 
+let greenSquareX; 
+const greenSquareSize = 50;
+const rectangleWidth = 310; 
+let rectangleHeight; 
+const redSquareSize = 50;
+let redSquareY;
+const redSquareSpeed = 5;
+let isLaserActive = false; 
+let laserY;
+const laserHeight = 20;
+const laserSpeed = 10;
+let isBlockHit = false;
+let isKatanaActive = false; 
+let katanaAngle = 0;
+const katanaSwingSpeed = 0.1;
+const katanaHeight = 100;
 let score = 0;
-let isDodging = false;
-let isShooting = false;
-let obstacles = [];
-let boss = {
-  x: canvas.width / 2 - 100,
-  y: -100,
-  width: 200,
-  height: 200,
-};
-let player = {
-  x: canvas.width / 2 - 25,
-  y: canvas.height - 75,
-  width: 50,
-  height: 50,
-  speed: 30
-};
-let obstacle = {
-  color: 'red',
+let health = 100;
+let redSquareX;
+let redDead = false;
+
+function initializeGame() {
+  updateCanvasSize();
+  greenSquareY = (canvas.height - greenSquareSize) - 50;
+  greenSquareX = (canvas.width - greenSquareSize) / 2;
+  rectangleHeight = canvas.height;
+  redSquareY = -redSquareSize;
+  redSquareX = Math.random() * (rectangleWidth - redSquareSize) + ((canvas.width - rectangleWidth) / 2);
+
 }
-let redLineY = canvas.height - 50;
 
-document.addEventListener("keydown", handleKeyDown);
-document.addEventListener("keyup", handleKeyUp);
-
-function handleKeyDown(event) {
-
-  if (event.keyCode === 32) {
-    isShooting = true;
-    destroyObstaclesInLaserRange();
+function gameLoop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = 'grey';
+  ctx.fillRect((canvas.width - rectangleWidth) / 2, (canvas.height - rectangleHeight) / 2, rectangleWidth, rectangleHeight);
+  ctx.fillStyle = 'green';
+  ctx.fillRect(greenSquareX, greenSquareY, greenSquareSize, greenSquareSize);
+  ctx.fillStyle = 'red';
+  ctx.fillRect(redSquareX, redSquareY, redSquareSize, redSquareSize);
+  ctx.fillStyle = 'white';
+  ctx.font = 'bold 24px Arial';
+  ctx.fillText('Score: ' + score, (canvas.width / 2) - 60, 30);
+  ctx.fillStyle = 'white';
+  ctx.font = 'bold 12px Arial';
+  ctx.fillText('Health: ' + health, canvas.width - 715, 640);
+  redSquareY += redSquareSpeed;
+  // Check if the red square is out of the screen
+  if (redSquareY > canvas.height || isBlockHit || redDead) {
+    // Randomize the X position within the grey area
+    redSquareX = Math.random() * (rectangleWidth - redSquareSize) + ((canvas.width - rectangleWidth) / 2);
+    redSquareY = -redSquareSize;
+    isBlockHit = false;
+    redDead = false;
   }
-}
 
-function handleKeyUp(event) {
-
-  if (event.keyCode === 32) {
-    isShooting = false;
+  if (redSquareY > canvas.height) {
+    redSquareY = -redSquareSize;
+    score += 10;
   }
-}
-
-function update() {
-  draw();
-  requestAnimationFrame(update);
-}
-
-
-function draw() {
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  context.fillStyle = obstacle.color;
-  context.fillRect(0, redLineY, canvas.width, 5);
-  obstacles.forEach((obstacle, index) => {
-    obstacle.y += obstacle.speed;
-    context.fillStyle = obstacle.color;
-    context.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-
-    if (obstacle.y + obstacle.height >= redLineY) {
-      obstacles.splice(index, 1);
-    }
-  });
-  context.fillStyle = "white";
-  context.fillRect(boss.x, boss.y, boss.width, boss.height);
-  context.fillStyle = "green";
-  context.fillRect(player.x, player.y, player.width, player.height);
-  if (isShooting) {
-    context.fillStyle = "yellow";
-    context.fillRect(player.x + player.width / 2, player.y - 20, player.width / 2, 20);
+  if (redSquareY + redSquareSize >= greenSquareY + 5 && health != 0) {
+    health -= 5;
+    redSquareY = -redSquareSize;
   }
-}
 
-function generateObstacles() {
-  const obstacle = {
-    x: Math.random() * (canvas.width - 50),
-    y: -50,
-    width: 50,
-    height: 50,
-    speed: 5
-  };
-
-  obstacles.push(obstacle);
-}
-
-function destroyObstaclesInLaserRange() {
-  obstacles.forEach((obstacle, index) => {
-    const laserRange = {
-      x: player.x + player.width / 2 - 50,
-      y: player.y - 200,
-      width: 250,
-      height: 200
-    };
-
+  if (isLaserActive) {
+    laserY -= laserSpeed;
+    const laserX = greenSquareX + greenSquareSize / 2 - 2.5; // Set the laser beam's X position
+    const laserWidth = 5; // Set the laser beam's width
     if (
-      obstacle.x >= laserRange.x &&
-      obstacle.x + obstacle.width <= laserRange.x + laserRange.width &&
-      obstacle.y >= laserRange.y &&
-      obstacle.y + obstacle.height <= laserRange.y + laserRange.height
+      laserY + laserHeight >= redSquareY &&
+      laserY <= redSquareY + redSquareSize &&
+      laserX + laserWidth >= redSquareX &&
+      laserX <= redSquareX + redSquareSize
     ) {
-        obstacles.splice(index, 1);
+      isBlockHit = true;
+      redDead = true;
+      score += 50;
+      redSquareY = -redSquareSize;
     }
-  });
 
-}
+    if (laserY < 0 || isBlockHit) {
+    // Reset laser beam
+    isLaserActive = false;
+    isBlockHit = false;
+    }
 
-
-function gameOver() {
-  console.log("Game Over");
-}
-
-function movePlayer(direction) {
-  if (direction === "left" && player.x > 0) {
-    player.x -= player.speed;
+    // Draw the laser beam
+    ctx.fillStyle = 'violet';
+    ctx.fillRect(greenSquareX + greenSquareSize / 2 - 2.5, laserY, 5, laserHeight);
   }
 
-  if (direction === "right" && player.x + player.width < canvas.width) {
-    player.x += player.speed;
+  // Check if the laser katana is active
+  if (isKatanaActive) {
+    // Update the katana swing angle
+    katanaAngle += katanaSwingSpeed;
+
+    // Check for collision between the laser katana and the red square
+    if (
+      katanaAngle >= Math.PI / 2 &&
+      katanaAngle <= Math.PI &&
+      greenSquareX >= (canvas.width - rectangleWidth) / 2 &&
+      greenSquareX + greenSquareSize <= (canvas.width + rectangleWidth) / 2 &&
+      redSquareY + redSquareSize >= greenSquareY - 20
+    ) {
+      // Block is hit
+      isBlockHit = true;
+      redDead = true;
+      score += 50;
+      redSquareY = -redSquareSize;
+    }
+
+    // Check if the katana swing is complete
+    if (katanaAngle >= Math.PI / 1.5) {
+      // Reset laser katana
+      isKatanaActive = false;
+      isBlockHit = false;
+    }
+
+    // Draw the laser katana swing
+    ctx.save();
+    ctx.translate(greenSquareX + greenSquareSize / 2, (greenSquareY + greenSquareSize) -25);
+    ctx.rotate(katanaAngle - 1.5);
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(greenSquareSize / 2, -katanaHeight);
+    ctx.stroke();
+    ctx.restore();
   }
+
+  requestAnimationFrame(gameLoop);
 }
+window.addEventListener('resize', function() {
+  updateCanvasSize();
+  initializeGame();
+});
 
-function startGame() {
-  setInterval(generateObstacles, 2000);
-  update();
-}
-
-document.addEventListener("keydown", event => {
-  if (event.keyCode === 37) {
-    movePlayer("left");
-  }
-
-  if (event.keyCode === 39) {
-    movePlayer("right");
+document.addEventListener('keydown', function(event) {
+  if (event.code === 'ArrowLeft') {
+    if (greenSquareX > (canvas.width - rectangleWidth) / 2) {
+      greenSquareX -= 10;
+    }
+  } else if (event.code === 'ArrowRight') {
+    if (greenSquareX < (canvas.width - rectangleWidth) / 2 + rectangleWidth - greenSquareSize) {
+      greenSquareX += 10;
+    }
+  } else if (event.code === 'KeyZ' && !isLaserActive) {
+    isLaserActive = true;
+    laserY = greenSquareY - laserHeight;
+  } else if (event.code === 'KeyX' && !isKatanaActive) {
+    // Activate the laser katana
+    isKatanaActive = true;
+    katanaAngle = 0;
   }
 });
 
-startGame();
-
-</script>
+initializeGame();
+gameLoop();
+  </script>
+</body>
 </html>
